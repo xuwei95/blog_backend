@@ -1,5 +1,6 @@
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import render_to_response
 from django.http.response import JsonResponse
 from app.models import User, Website, Mail, Category, Artical, Comments, System_log, User_log, Tag
 from myadmin.serializers import UserSerializer, WebsiteSerializer, EmailSerializer,\
@@ -257,7 +258,7 @@ class User_setting(APIView):
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)
         return JsonResponse(
-            {'code': 0, 'msg': "", 'data': data[0]})
+            {'code': 20000, 'msg': "", 'data': data[0]})
 
     def post(self, request, *args, **kwargs):
         dic = request.data
@@ -284,7 +285,7 @@ class User_setting(APIView):
             user.sex = sex
             user.note = dic['note']
             user.save()
-        return JsonResponse({'code': 20000})
+        return JsonResponse({'code': 20000, 'msg': '修改成功'})
 
 
 class User_password(APIView):
@@ -299,13 +300,13 @@ class User_password(APIView):
         password = user.password
         is_valid = check_password(old_password, password)
         if not is_valid:
-            return JsonResponse({'code': 20000})
+            return JsonResponse({'code': 20000, 'msg': '密码错误'})
         elif new_password != repass:
-            return JsonResponse({'code': 20000})
+            return JsonResponse({'code': 20000, 'msg': '两次密码输入不同，请重新输入'})
         else:
             user.password = make_password(new_password)
             user.save()
-            return JsonResponse({'code': 20000})
+            return JsonResponse({'code': 20000, 'msg': '密码修改成功'})
 
 
 class Web_site(APIView):
@@ -349,6 +350,8 @@ class Email(APIView):
         ser = EmailSerializer(instance=email, many=True)
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)
+        if len(data) != 0:
+            data = data[0]
         return JsonResponse(
             {'code': 20000, 'msg': "", 'count': len(data), 'data': data})
 
@@ -368,7 +371,7 @@ class Email(APIView):
             email.nickname = dic['nickname']
             email.password = dic['password']
             email.save()
-        return JsonResponse({'code': 20000})
+        return JsonResponse({'code': 20000, 'msg': '修改成功'})
 
 
 class Syslog_list(APIView):
