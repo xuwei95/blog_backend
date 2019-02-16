@@ -1,6 +1,5 @@
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
-from django.shortcuts import render_to_response
 from django.http.response import JsonResponse
 from app.models import User, Website, Mail, Category, Artical, Comments, System_log, User_log, Tag
 from myadmin.serializers import UserSerializer, WebsiteSerializer, EmailSerializer,\
@@ -339,7 +338,7 @@ class Web_site(APIView):
             website.describe = dic['describe']
             website.information = dic['information']
             website.save()
-        return JsonResponse({'code': 20000})
+        return JsonResponse({'code': 20000, 'msg': '修改成功'})
 
 
 class Email(APIView):
