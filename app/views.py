@@ -68,6 +68,21 @@ class Regist(APIView):
             user.save()
             return JsonResponse({'code': 20000, 'success': 1, 'msg': "注册成功"})
 
+class Publish_comment(APIView):
+    authentication_classes = []
+    permission_classes = []
+    throttle_classes = []
+
+    def post(self, request, *args, **kwargs):
+        dic = request.data
+        username = dic['username']
+        content = dic['comments']
+        artical = dic['article_id']
+        user = User.objects.filter(username=username).first()
+        user_id = user.id
+        comment = Comments(content=content, artical_id=artical, user_id=user_id)
+        comment.save()
+        return JsonResponse({'code': 20000, 'success': 1, 'msg': "评论发表成功"})
 class Article_list(APIView):
     permission_classes = []
 
