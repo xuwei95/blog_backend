@@ -21,6 +21,8 @@ from rest_framework_jwt.views import obtain_jwt_token, verify_jwt_token, refresh
 
 urlpatterns = [
     url(r'^info/', views.Info.as_view()),
+    url(r'^u_info/', views.User_info.as_view()),
+    url(r'^regist/', views.Regist.as_view()),
     url(r'^article_list/', views.Article_list.as_view()),
     url(r'^serach/', views.Serach.as_view()),
     url(r'^article_hot/', views.Article_hot.as_view()),

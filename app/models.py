@@ -10,6 +10,7 @@ class User(AbstractUser):
     nickname = models.CharField("昵称", max_length=30)
     sex = models.SmallIntegerField(default=1)
     phone_number = models.CharField("手机号", max_length=30)
+    head_img = models.CharField("头像", max_length=200, default='/static/images/head.jpg')
     note = models.CharField("备注", max_length=200)
 
     class Meta(AbstractUser.Meta):

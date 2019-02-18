@@ -350,7 +350,9 @@ class Email(APIView):
         ser = EmailSerializer(instance=email, many=True)
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)
-        if len(data) != 0:
+        if len(data) == 0:
+            data = []
+        else:
             data = data[0]
         return JsonResponse(
             {'code': 20000, 'msg': "", 'count': len(data), 'data': data})

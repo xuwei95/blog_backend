@@ -4,6 +4,8 @@ from app.models import User, Website, Mail, Category, Artical, Comments, System_
 from app.serializers import UserSerializer, WebsiteSerializer, ArticleSerializer, Article_detail_Serializer, CategorySerializer, Serach_Serializer
 import json
 from rest_framework.pagination import PageNumberPagination
+from rest_framework_jwt.utils import jwt_decode_handler
+from django.contrib.auth.hashers import make_password
 # Create your views here.
 
 class MyPageNumberPagination(PageNumberPagination):
@@ -31,6 +33,40 @@ class Info(APIView):
         return JsonResponse(
             {'code': 20000, 'msg': "ok", 'data': data})
 
+
+class User_info(APIView):
+    permission_classes = []
+
+    def get(self, request, *args, **kwargs):
+        dic = request.query_params
+        meta = jwt_decode_handler(dic['token'])
+        username = meta['username']
+        user = User.objects.filter(username=username).first()
+        hrad_img = user.head_img
+        data = {'name': username, 'head_img': hrad_img}
+        return JsonResponse({'code': 20000, 'data': data})
+
+class Regist(APIView):
+    authentication_classes = []
+    permission_classes = []
+    throttle_classes = []
+
+    def post(self, request, *args, **kwargs):
+        dic = request.data
+        username = dic['username']
+        password = dic['password']
+        repass = dic['repass']
+        if password != repass:
+            return JsonResponse({'code': 20000, 'success': 0, 'msg': "两次输入密码不同，请重新输入"})
+        user = User.objects.filter(username=username).first()
+        if user is not None:
+            return JsonResponse({'code': 20000, 'success': 0, 'msg': "用户名已存在"})
+        else:
+            password = make_password(password)
+            user = User(username=username,
+                        password=password)
+            user.save()
+            return JsonResponse({'code': 20000, 'success': 1, 'msg': "注册成功"})
 
 class Article_list(APIView):
     permission_classes = []
