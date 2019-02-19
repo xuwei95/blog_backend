@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from django.http.response import JsonResponse
 from app.models import User, Website, Mail, Category, Artical, Comments, System_log, User_log, Tag
-from app.serializers import UserSerializer, WebsiteSerializer, ArticleSerializer, Article_detail_Serializer, CategorySerializer, Serach_Serializer
+from app.serializers import UserSerializer, WebsiteSerializer, ArticleSerializer, Article_detail_Serializer, CategorySerializer, Serach_Serializer, CommentsSerializer
 import json
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_jwt.utils import jwt_decode_handler
@@ -76,13 +76,28 @@ class Publish_comment(APIView):
     def post(self, request, *args, **kwargs):
         dic = request.data
         username = dic['username']
-        content = dic['comments']
-        artical = dic['article_id']
+        content = dic['content']
+        artical = dic['artical']
         user = User.objects.filter(username=username).first()
         user_id = user.id
         comment = Comments(content=content, artical_id=artical, user_id=user_id)
         comment.save()
         return JsonResponse({'code': 20000, 'success': 1, 'msg': "评论发表成功"})
+class Comments_list(APIView):
+    authentication_classes = []
+    permission_classes = []
+    throttle_classes = []
+
+    def get(self, request, *args, **kwargs):
+        dic = request.query_params
+        article_id = dic['article_id']
+        comments = Comments.objects.filter(artical_id=article_id).all()
+        pg = MyPageNumberPagination()
+        comment_list = pg.paginate_queryset(queryset=comments, request=request, view=self)
+        ser = CommentsSerializer(instance=comment_list, many=True)
+        data = json.dumps(ser.data, ensure_ascii=False)
+        data = eval(data)
+        return JsonResponse({'code': 20000, 'data': data})
 class Article_list(APIView):
     permission_classes = []
 
