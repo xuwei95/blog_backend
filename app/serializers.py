@@ -109,7 +109,7 @@ class CommentsSerializer(serializers.ModelSerializer):
         format="%Y-%m-%d %H:%M:%S", required=False, read_only=True)
     article = serializers.CharField(source='artical.title')
     user = serializers.CharField(source='user.username')
-
+    head_img = serializers.CharField(source='user.head_img')
 
     class Meta:
         model = models.Artical
@@ -119,8 +119,8 @@ class CommentsSerializer(serializers.ModelSerializer):
             'article',
             'user',
             'created_at',
+            'head_img'
             ]
-
 
 class CategorySerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(
