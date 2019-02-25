@@ -8,6 +8,7 @@ from rest_framework_jwt.utils import jwt_decode_handler
 from django.contrib.auth.hashers import make_password
 # Create your views here.
 
+
 class MyPageNumberPagination(PageNumberPagination):
     page_size = 10
     page_size_query_param = "limit"
@@ -22,7 +23,8 @@ class Info(APIView):
     def get(self, request, *args, **kwargs):
         dic = request.query_params
         if 'category_id' in dic.keys():
-            article_count = Artical.objects.filter(is_delete=0, category_id=dic['category_id']).count()
+            article_count = Artical.objects.filter(
+                is_delete=0, category_id=dic['category_id']).count()
         else:
             article_count = Artical.objects.filter(is_delete=0).count()
         website = [Website.objects.first()]
@@ -34,7 +36,7 @@ class Info(APIView):
             {'code': 20000, 'msg': "ok", 'data': data})
 
 
-class User_info(APIView):
+class User_api(APIView):
     permission_classes = []
 
     def get(self, request, *args, **kwargs):
@@ -46,18 +48,14 @@ class User_info(APIView):
         data = {'name': username, 'head_img': hrad_img}
         return JsonResponse({'code': 20000, 'data': data})
 
-class Regist(APIView):
-    authentication_classes = []
-    permission_classes = []
-    throttle_classes = []
-
     def post(self, request, *args, **kwargs):
         dic = request.data
         username = dic['username']
         password = dic['password']
         repass = dic['repass']
         if password != repass:
-            return JsonResponse({'code': 20000, 'success': 0, 'msg': "两次输入密码不同，请重新输入"})
+            return JsonResponse(
+                {'code': 20000, 'success': 0, 'msg': "两次输入密码不同，请重新输入"})
         user = User.objects.filter(username=username).first()
         if user is not None:
             return JsonResponse({'code': 20000, 'success': 0, 'msg': "用户名已存在"})
@@ -68,22 +66,8 @@ class Regist(APIView):
             user.save()
             return JsonResponse({'code': 20000, 'success': 1, 'msg': "注册成功"})
 
-class Publish_comment(APIView):
-    authentication_classes = []
-    permission_classes = []
-    throttle_classes = []
 
-    def post(self, request, *args, **kwargs):
-        dic = request.data
-        username = dic['username']
-        content = dic['content']
-        artical = dic['artical']
-        user = User.objects.filter(username=username).first()
-        user_id = user.id
-        comment = Comments(content=content, artical_id=artical, user_id=user_id)
-        comment.save()
-        return JsonResponse({'code': 20000, 'success': 1, 'msg': "评论发表成功"})
-class Comments_list(APIView):
+class Comments_api(APIView):
     authentication_classes = []
     permission_classes = []
     throttle_classes = []
@@ -93,56 +77,47 @@ class Comments_list(APIView):
         article_id = dic['article_id']
         comments = Comments.objects.filter(artical_id=article_id).all()
         pg = MyPageNumberPagination()
-        comment_list = pg.paginate_queryset(queryset=comments, request=request, view=self)
+        comment_list = pg.paginate_queryset(
+            queryset=comments, request=request, view=self)
         ser = CommentsSerializer(instance=comment_list, many=True)
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)
         return JsonResponse({'code': 20000, 'data': data})
-class Article_list(APIView):
+
+    def post(self, request, *args, **kwargs):
+        dic = request.data
+        username = dic['username']
+        content = dic['content']
+        artical = dic['artical']
+        user = User.objects.filter(username=username).first()
+        user_id = user.id
+        comment = Comments(
+            content=content,
+            artical_id=artical,
+            user_id=user_id)
+        comment.save()
+        return JsonResponse({'code': 20000, 'success': 1, 'msg': "评论发表成功"})
+
+
+class Article_api(APIView):
     permission_classes = []
 
     def get(self, request, *args, **kwargs):
         dic = request.query_params
         if 'category_id' in dic.keys():
-            all_Article = Artical.objects.filter(is_delete=0, category_id=dic['category_id']).order_by('-created_at').all()
+            all_Article = Artical.objects.filter(
+                is_delete=0, category_id=dic['category_id']).order_by('-created_at').all()
         else:
-            all_Article = Artical.objects.filter(is_delete=0).order_by('-created_at').all()
+            all_Article = Artical.objects.filter(
+                is_delete=0).order_by('-created_at').all()
         pg = MyPageNumberPagination()
-        Article_list = pg.paginate_queryset(queryset=all_Article, request=request, view=self)
+        Article_list = pg.paginate_queryset(
+            queryset=all_Article, request=request, view=self)
         ser = ArticleSerializer(instance=Article_list, many=True)
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)
         return JsonResponse(
             {'code': 20000, 'msg': "", 'count': len(all_Article), 'data': data})
-
-
-class Article_hot(APIView):
-    permission_classes = []
-
-    def get(self, request, *args, **kwargs):
-        all_Article = Artical.objects.filter(is_delete=0).order_by('-viewers').all()
-        if len(all_Article) > 10:
-            all_Article = all_Article[:10]
-        ser = ArticleSerializer(instance=all_Article, many=True)
-        data = json.dumps(ser.data, ensure_ascii=False)
-        data = eval(data)
-        return JsonResponse(
-            {'code': 20000, 'msg': "", 'count': len(all_Article), 'data': data})
-
-class Article_category(APIView):
-    permission_classes = []
-
-    def get(self, request, *args, **kwargs):
-        dic = request.query_params
-        if 'category_id' in dic:
-            all_Catogory = Category.objects.filter(id=dic['category_id']).all()
-        else:
-            all_Catogory = Category.objects.all()
-        ser = CategorySerializer(instance=all_Catogory, many=True)
-        data = json.dumps(ser.data, ensure_ascii=False)
-        data = eval(data)
-        return JsonResponse(
-            {'code': 20000, 'msg': "", 'count': len(all_Catogory), 'data': data})
 
 
 class Article_detail(APIView):
@@ -161,13 +136,47 @@ class Article_detail(APIView):
         return JsonResponse(
             {'code': 20000, 'msg': "", 'data': data[0]})
 
+
+class Article_hot(APIView):
+    permission_classes = []
+
+    def get(self, request, *args, **kwargs):
+        all_Article = Artical.objects.filter(
+            is_delete=0).order_by('-viewers').all()
+        if len(all_Article) > 10:
+            all_Article = all_Article[:10]
+        ser = ArticleSerializer(instance=all_Article, many=True)
+        data = json.dumps(ser.data, ensure_ascii=False)
+        data = eval(data)
+        return JsonResponse(
+            {'code': 20000, 'msg': "", 'count': len(all_Article), 'data': data})
+
+
+class Category_api(APIView):
+    permission_classes = []
+
+    def get(self, request, *args, **kwargs):
+        dic = request.query_params
+        if 'category_id' in dic:
+            all_Catogory = Category.objects.filter(id=dic['category_id']).all()
+        else:
+            all_Catogory = Category.objects.all()
+        ser = CategorySerializer(instance=all_Catogory, many=True)
+        data = json.dumps(ser.data, ensure_ascii=False)
+        data = eval(data)
+        return JsonResponse(
+            {'code': 20000, 'msg': "", 'count': len(all_Catogory), 'data': data})
+
+
 class Serach(APIView):
     permission_classes = []
 
     def get(self, request, *args, **kwargs):
         dic = request.query_params
         query_String = dic['queryString']
-        all_Article = Artical.objects.filter(is_delete=0).filter(title__icontains=query_String).all()
+        all_Article = Artical.objects.filter(
+            is_delete=0).filter(
+            title__icontains=query_String).all()
         ser = Serach_Serializer(instance=all_Article, many=True)
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)

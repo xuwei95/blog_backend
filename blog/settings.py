@@ -123,6 +123,10 @@ REST_FRAMEWORK = {
                 'rest_framework.authentication.SessionAuthentication',
                 'rest_framework.authentication.BasicAuthentication',
             ),
+        "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.URLPathVersioning",
+        "DEFAULT_VERSION": 'v1',
+        "ALLOWED_VERSIONS": ['v1'],
+        "VERSION_PARAM": 'version',
         }
 JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=1), #JWT_EXPIRATION_DELTA 指明token的有效期
