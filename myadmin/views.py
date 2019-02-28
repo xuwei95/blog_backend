@@ -1,12 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
-from django.shortcuts import render_to_response
 from django.http.response import JsonResponse
 from app.models import User, Website, Mail, Category, Artical, Comments, System_log, User_log, Tag
 from myadmin.serializers import UserSerializer, WebsiteSerializer, EmailSerializer,\
     CategorySerializer, ArticleSerializer, CommentsSerializer, SyslogSerializer, UserlogSerializer
 import json
-from django.contrib import auth
 from django.contrib.auth.hashers import make_password, check_password
 from myadmin.permission import AdminPermission
 from rest_framework_jwt.utils import jwt_decode_handler
@@ -20,240 +18,28 @@ class MyPageNumberPagination(PageNumberPagination):
     page_query_param = "page"
 
 
-class Login(APIView):
-    authentication_classes = []
-    permission_classes = []
-    throttle_classes = []
-
-    def post(self, request, *args, **kwargs):
-        dic = request.data
-        username = dic['username']
-        password = dic['password']
-        user = auth.authenticate(username=username, password=password)
-        if user is not None:
-            if user.is_superuser:
-                return JsonResponse({'code': 20000, 'msg': "登录成功"})
-            else:
-                return JsonResponse({'code': 20000, 'msg': "你不是管理员"})
-        else:
-            return JsonResponse({'code': 20000, 'msg': "账号或密码错误"})
-
-
-class User_list(APIView):
-    permission_classes = [AdminPermission]
-
-    def get(self, request, *args, **kwargs):
-        users = User.objects.all()
-        ser = UserSerializer(instance=users, many=True)
-        data = json.dumps(ser.data, ensure_ascii=False)
-        data = eval(data)
-        return JsonResponse(
-            {'code': 20000, 'msg': "", 'count': len(data), 'data': data})
-
-class User_info(APIView):
+class Info(APIView):
     permission_classes = [AdminPermission]
 
     def get(self, request, *args, **kwargs):
         dic = request.query_params
         meta = jwt_decode_handler(dic['token'])
-        data = {'roles': [meta['username']], 'name': meta['username'], 'avatar': "https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif"}
+        user = User.objects.filter(username=meta['username']).first()
+        # https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif
+        data = {
+            'roles': user.username,
+            'name': user.username,
+            'avatar': user.head_img}
         return JsonResponse({'code': 20000, 'data': data})
 
 
-class Comments_list(APIView):
+class Admin_User(APIView):
     permission_classes = [AdminPermission]
 
     def get(self, request, *args, **kwargs):
-        comments = Comments.objects.all()
-        pg = MyPageNumberPagination()
-        comment_list = pg.paginate_queryset(queryset=comments, request=request, view=self)
-        ser = CommentsSerializer(instance=comment_list, many=True)
-        data = json.dumps(ser.data, ensure_ascii=False)
-        data = eval(data)
-        return JsonResponse(
-            {'code': 20000, 'msg': "", 'count': len(comments), 'data': data})
-
-
-class Category_list(APIView):
-    permission_classes = [AdminPermission]
-
-    def get(self, request, *args, **kwargs):
-        all_category = Category.objects.all()
-        pg = MyPageNumberPagination()
-        category_list = pg.paginate_queryset(queryset=all_category, request=request, view=self)
-        ser = CategorySerializer(instance=category_list, many=True)
-        data = json.dumps(ser.data, ensure_ascii=False)
-        data = eval(data)
-        return JsonResponse(
-            {'code': 20000, 'msg': "", 'count': len(all_category), 'data': data})
-
-
-class Category_add(APIView):
-    permission_classes = [AdminPermission]
-
-    def post(self, request, *args, **kwargs):
-        dic = request.data
-        name = dic['category']
-        category = Category.objects.filter(name=name).first()
-        if category:
-            return JsonResponse({'code': 20000, 'msg': '标题已存在'})
-        else:
-            category = Category(name=name)
-            category.save()
-            return JsonResponse({'code': 20000, 'msg': 'ok'})
-
-
-class Category_edit(APIView):
-    permission_classes = [AdminPermission]
-
-    def post(self, request, *args, **kwargs):
-        dic = request.data
-        id = dic['id']
-        name = dic['name']
-        category = Category.objects.filter(name=name).first()
-        if category:
-            return JsonResponse({'code': 20000, 'msg': '分类已存在'})
-        category = Category.objects.filter(id=id).first()
-        if category:
-            category.name = name
-            category.save()
-            return JsonResponse({'code': 20000, 'msg': 'ok'})
-        else:
-            return JsonResponse({'code': 20000, 'msg': 'error'})
-
-
-class Category_del(APIView):
-    permission_classes = [AdminPermission]
-
-    def post(self, request, *args, **kwargs):
-        dic = request.data
-        id = dic['id']
-        category = Category.objects.filter(id=id).first()
-        if category:
-            try:
-                category.delete()
-            except BaseException:
-                return JsonResponse({'code': 20000, 'msg': '删除失败，已有文章属于该分类'})
-            return JsonResponse({'code': 20000, 'msg': 'ok'})
-        else:
-            return JsonResponse({'code': 20000, 'msg': 'error'})
-
-
-class Article_list(APIView):
-    permission_classes = [AdminPermission]
-
-    def get(self, request, *args, **kwargs):
-        all_Article = Artical.objects.filter(is_delete=0).all()
-        pg = MyPageNumberPagination()
-        Article_list = pg.paginate_queryset(queryset=all_Article, request=request, view=self)
-        ser = ArticleSerializer(instance=Article_list, many=True)
-        data = json.dumps(ser.data, ensure_ascii=False)
-        data = eval(data)
-        return JsonResponse(
-            {'code': 20000, 'msg': "", 'count': len(all_Article), 'data': data})
-
-
-class Article_del(APIView):
-    permission_classes = [AdminPermission]
-
-    def post(self, request, *args, **kwargs):
-        dic = request.data
-        id = dic['id']
-        real_delete = int(dic['real_delete'])
-        article = Artical.objects.filter(id=id).first()
-        if article:
-            if real_delete == 0:
-                article.is_delete = 1
-                article.save()
-                return JsonResponse({'code': 20000, 'msg': '已移入回收站'})
-            elif real_delete == 1:
-                article.delete()
-                return JsonResponse({'code': 20000, 'msg': '删除成功'})
-        else:
-            return JsonResponse({'code': 20000, 'msg': '未知错误'})
-
-
-class Article_add(APIView):
-    permission_classes = [AdminPermission]
-
-    def post(self, request, *args, **kwargs):
-        dic = request.data
-        title = dic['title']
-        article = Artical.objects.filter(title=title).first()
-        if article is None:
-            category = Category.objects.filter(name=dic['category']).first()
-            if category is None:
-                category = Category.objects.create(name=dic['category'])
-            article = Artical.objects.create(title=title,
-                                             content=dic['content'],
-                                             category=category,
-                                             is_public=int(dic['is_public'])
-                                             )
-            tags = dic['tags'].split(',')
-            for t in tags:
-                tag = Tag.objects.filter(name=t).first()
-                if tag is None:
-                    tag = Tag.objects.create(name=t)
-                article.tag.add(tag)
-            article.save()
-            return JsonResponse({'code': 20000, 'msg': '添加成功'})
-        else:
-            category = Category.objects.filter(name=dic['category']).first()
-            if category is None:
-                category = Category.objects.create(name=dic['category'])
-            article.title = title
-            article.content = dic['content']
-            article.category = category
-            if dic['is_public'] == True:
-                article.is_public = 1
-            else:
-                article.is_public = 0
-            article.tag.clear()
-            tags = dic['tags'].split(',')
-            for t in tags:
-                tag = Tag.objects.filter(name=t).first()
-                if tag is None:
-                    tag = Tag.objects.create(name=t)
-                article.tag.add(tag)
-            article.save()
-            return JsonResponse({'code': 20000, 'msg': '更新成功'})
-
-
-class Recly_list(APIView):
-    permission_classes = [AdminPermission]
-
-    def get(self, request, *args, **kwargs):
-        all_Article = Artical.objects.filter(is_delete=1).all()
-        pg = MyPageNumberPagination()
-        Article_list = pg.paginate_queryset(queryset=all_Article, request=request, view=self)
-        ser = ArticleSerializer(instance=Article_list, many=True)
-        data = json.dumps(ser.data, ensure_ascii=False)
-        data = eval(data)
-        return JsonResponse(
-            {'code': 20000, 'msg': "", 'count': len(all_Article), 'data': data})
-
-    def post(self, request, *args, **kwargs):
-        dic = request.data
-        if 'id' in dic.keys():
-            article = Artical.objects.filter(id=dic['id']).first()
-            article.is_delete = 0
-            article.save()
-            return JsonResponse({'code': 20000, 'msg': '文章还原成功'})
-        else:
-            try:
-                articles = Artical.objects.filter(is_delete=1).all()
-                for article in articles:
-                    article.delete()
-                return JsonResponse({'code': 20000, 'msg': '清空回收站成功'})
-            except BaseException:
-                return JsonResponse({'code': 20000, 'msg': '未知错误'})
-
-
-class User_setting(APIView):
-    permission_classes = [AdminPermission]
-
-    def get(self, request, *args, **kwargs):
-        user = [User.objects.filter(is_superuser=1).first()]
+        dic = request.query_params
+        meta = jwt_decode_handler(dic['token'])
+        user = [User.objects.filter(username=meta['username']).first()]
         ser = UserSerializer(instance=user, many=True)
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)
@@ -262,7 +48,8 @@ class User_setting(APIView):
 
     def post(self, request, *args, **kwargs):
         dic = request.data
-        user = User.objects.filter(is_superuser=1).first()
+        id = dic['id']
+        user = User.objects.filter(id=id).first()
         if dic['sex'] == '男':
             sex = 0
         elif dic['sex'] == '女':
@@ -307,6 +94,204 @@ class User_password(APIView):
             user.password = make_password(new_password)
             user.save()
             return JsonResponse({'code': 20000, 'msg': '密码修改成功'})
+
+
+class User_list(APIView):
+    permission_classes = [AdminPermission]
+
+    def get(self, request, *args, **kwargs):
+        users = User.objects.all()
+        ser = UserSerializer(instance=users, many=True)
+        data = json.dumps(ser.data, ensure_ascii=False)
+        data = eval(data)
+        return JsonResponse(
+            {'code': 20000, 'msg': "", 'count': len(data), 'data': data})
+
+
+class Comments_api(APIView):
+    permission_classes = [AdminPermission]
+
+    def get(self, request, *args, **kwargs):
+        comments = Comments.objects.all()
+        pg = MyPageNumberPagination()
+        comment_list = pg.paginate_queryset(
+            queryset=comments, request=request, view=self)
+        ser = CommentsSerializer(instance=comment_list, many=True)
+        data = json.dumps(ser.data, ensure_ascii=False)
+        data = eval(data)
+        return JsonResponse(
+            {'code': 20000, 'msg': "", 'count': len(comments), 'data': data})
+
+
+class Category_api(APIView):
+    permission_classes = [AdminPermission]
+
+    def get(self, request, *args, **kwargs):
+        all_category = Category.objects.all()
+        pg = MyPageNumberPagination()
+        category_list = pg.paginate_queryset(
+            queryset=all_category, request=request, view=self)
+        ser = CategorySerializer(instance=category_list, many=True)
+        data = json.dumps(ser.data, ensure_ascii=False)
+        data = eval(data)
+        return JsonResponse(
+            {'code': 20000, 'msg': "", 'count': len(all_category), 'data': data})
+
+    def post(self, request, *args, **kwargs):
+        dic = request.data
+        name = dic['category']
+        category = Category.objects.filter(name=name).first()
+        if category:
+            return JsonResponse({'code': 20000, 'msg': '标题已存在'})
+        else:
+            category = Category(name=name)
+            category.save()
+            return JsonResponse({'code': 20000, 'msg': 'ok'})
+
+    def put(self, request, *args, **kwargs):
+        dic = request.data
+        id = dic['id']
+        name = dic['name']
+        category = Category.objects.filter(name=name).first()
+        if category:
+            return JsonResponse({'code': 20000, 'msg': '分类已存在'})
+        category = Category.objects.filter(id=id).first()
+        if category:
+            category.name = name
+            category.save()
+            return JsonResponse({'code': 20000, 'msg': 'ok'})
+        else:
+            return JsonResponse({'code': 20000, 'msg': 'error'})
+
+    def delete(self, request, *args, **kwargs):
+        dic = request.data
+        id = dic['id']
+        category = Category.objects.filter(id=id).first()
+        if category:
+            try:
+                category.delete()
+            except BaseException:
+                return JsonResponse({'code': 20000, 'msg': '删除失败，已有文章属于该分类'})
+            return JsonResponse({'code': 20000, 'msg': 'ok'})
+        else:
+            return JsonResponse({'code': 20000, 'msg': 'error'})
+
+
+class Article_api(APIView):
+    permission_classes = [AdminPermission]
+
+    def get(self, request, *args, **kwargs):
+        all_Article = Artical.objects.filter(is_delete=0).all()
+        pg = MyPageNumberPagination()
+        Article_list = pg.paginate_queryset(
+            queryset=all_Article, request=request, view=self)
+        ser = ArticleSerializer(instance=Article_list, many=True)
+        data = json.dumps(ser.data, ensure_ascii=False)
+        data = eval(data)
+        return JsonResponse(
+            {'code': 20000, 'msg': "", 'count': len(all_Article), 'data': data})
+
+    def post(self, request, *args, **kwargs):
+        dic = request.data
+        title = dic['title']
+        meta = jwt_decode_handler(dic['token'])
+        user = User.objects.filter(username=meta['username']).first()
+        article = Artical.objects.filter(title=title).first()
+        if article is None:
+            category = Category.objects.filter(name=dic['category']).first()
+            article = Artical.objects.create(title=dic['title'],
+                                             content=dic['content'],
+                                             category=category,
+                                             is_public=int(dic['is_public']),
+                                             author=user.username
+                                             )
+            tags = dic['tags'].split(',')
+            for t in tags:
+                tag = Tag.objects.filter(name=t).first()
+                if tag is None:
+                    tag = Tag.objects.create(name=t)
+                article.tag.add(tag)
+            article.save()
+            return JsonResponse({'code': 20000, 'msg': '添加成功'})
+        else:
+            return JsonResponse({'code': 20000, 'msg': '文章名称已存在，请重新输入'})
+
+    def put(self, request, *args, **kwargs):
+        dic = request.data
+        id = dic['id']
+        title = dic['title']
+        article = Artical.objects.filter(id=id).first()
+        category = Category.objects.filter(name=dic['category']).first()
+        article.title = title
+        article.content = dic['content']
+        article.category = category
+        if dic['is_public']:
+            article.is_public = 1
+        else:
+            article.is_public = 0
+        article.tag.clear()
+        tags = dic['tags'].split(',')
+        for t in tags:
+            tag = Tag.objects.filter(name=t).first()
+            if tag is None:
+                tag = Tag.objects.create(name=t)
+            article.tag.add(tag)
+        article.save()
+        return JsonResponse({'code': 20000, 'msg': '更新成功'})
+
+    def delete(self, request, *args, **kwargs):
+        dic = request.data
+        id = dic['id']
+        real_delete = int(dic['real_delete'])
+        article = Artical.objects.filter(id=id).first()
+        if article:
+            if real_delete == 0:
+                article.is_delete = 1
+                article.save()
+                return JsonResponse({'code': 20000, 'msg': '已移入回收站'})
+            elif real_delete == 1:
+                comments = Comments.objects.filter(artical_id=id).all()
+                for comment in comments:
+                    comment.delete()
+                article.delete()
+                return JsonResponse({'code': 20000, 'msg': '删除成功'})
+        else:
+            return JsonResponse({'code': 20000, 'msg': '未知错误'})
+
+
+class Recly(APIView):
+    permission_classes = [AdminPermission]
+
+    def get(self, request, *args, **kwargs):
+        all_Article = Artical.objects.filter(is_delete=1).all()
+        pg = MyPageNumberPagination()
+        Article_list = pg.paginate_queryset(
+            queryset=all_Article, request=request, view=self)
+        ser = ArticleSerializer(instance=Article_list, many=True)
+        data = json.dumps(ser.data, ensure_ascii=False)
+        data = eval(data)
+        return JsonResponse(
+            {'code': 20000, 'msg': "", 'count': len(all_Article), 'data': data})
+
+    def post(self, request, *args, **kwargs):
+        dic = request.data
+        if 'id' in dic.keys():
+            article = Artical.objects.filter(id=dic['id']).first()
+            article.is_delete = 0
+            article.save()
+            return JsonResponse({'code': 20000, 'msg': '文章还原成功'})
+        else:
+            try:
+                articles = Artical.objects.filter(is_delete=1).all()
+                for article in articles:
+                    comments = Comments.objects.filter(
+                        artical_id=article.id).all()
+                    for comment in comments:
+                        comment.delete()
+                    article.delete()
+                return JsonResponse({'code': 20000, 'msg': '清空回收站成功'})
+            except BaseException:
+                return JsonResponse({'code': 20000, 'msg': '未知错误'})
 
 
 class Web_site(APIView):
@@ -376,7 +361,7 @@ class Email(APIView):
         return JsonResponse({'code': 20000, 'msg': '修改成功'})
 
 
-class Syslog_list(APIView):
+class Syslog(APIView):
     permission_classes = [AdminPermission]
 
     def get(self, request, *args, **kwargs):
@@ -388,7 +373,7 @@ class Syslog_list(APIView):
             {'code': 20000, 'msg': "", 'count': len(data), 'data': data})
 
 
-class Userlog_list(APIView):
+class Userlog(APIView):
     permission_classes = [AdminPermission]
 
     def get(self, request, *args, **kwargs):

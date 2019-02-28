@@ -6,13 +6,13 @@ class UserSerializer(serializers.ModelSerializer):
     date_joined = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S", required=False, read_only=True)
     sex = serializers.SerializerMethodField()
-
     class Meta:
         model = models.User
         fields = [
             'id',
             'username',
             'nickname',
+            'head_img',
             'email',
             'sex',
             'phone_number',

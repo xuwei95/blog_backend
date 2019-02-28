@@ -1,5 +1,3 @@
-
-
 def jwt_response_payload_handler(token, user=None, request=None):
     """为返回的结果添加用户相关信息"""
 
