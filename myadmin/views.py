@@ -8,6 +8,8 @@ import json
 from django.contrib.auth.hashers import make_password, check_password
 from myadmin.permission import AdminPermission
 from rest_framework_jwt.utils import jwt_decode_handler
+from myadmin.utils import disk_stat, getCPUstate, getMemorystate, network, count_user
+import datetime
 # Create your views here.
 
 
@@ -25,11 +27,18 @@ class Info(APIView):
         dic = request.query_params
         meta = jwt_decode_handler(dic['token'])
         user = User.objects.filter(username=meta['username']).first()
+        view_count = count_user()
+        user_count = User.objects.count()
+        article_count = Artical.objects.count()
+        comments_count = Comments.objects.count()
         # https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif
-        data = {
-            'roles': user.username,
-            'name': user.username,
-            'avatar': user.head_img}
+        data = {'roles': user.username,
+                'name': user.username,
+                'avatar': user.head_img,
+                'view_count': view_count,
+                'user_count': user_count,
+                'article_count': article_count,
+                'comments_count': comments_count}
         return JsonResponse({'code': 20000, 'data': data})
 
 
@@ -371,6 +380,39 @@ class Syslog(APIView):
         data = eval(data)
         return JsonResponse(
             {'code': 20000, 'msg': "", 'count': len(data), 'data': data})
+
+
+class Sys_info(APIView):
+    permission_classes = [AdminPermission]
+
+    def get(self, request, *args, **kwargs):
+        cpu = getCPUstate()
+        memory = getMemorystate()
+        disk = disk_stat()
+        sent, recv = network()
+        time = (datetime.datetime.now().utcnow() + datetime.timedelta(hours=8)).strftime("%H:%M:%S")
+        dic = {'time': time,
+               'cpu': cpu,
+               'memory': memory,
+               'sent': sent,
+               'recv': recv,
+               'disk': disk}
+        return JsonResponse(
+            {'code': 20000, 'msg': "", 'data': dic})
+
+
+class Network_info(APIView):
+    permission_classes = [AdminPermission]
+
+    def get(self, request, *args, **kwargs):
+        sent, recv = network()
+        time = (datetime.datetime.now().utcnow() + datetime.timedelta(hours=8)).strftime("%H:%M:%S")
+        dic = {'time': time,
+               'sent': sent,
+               'recv': recv
+               }
+        return JsonResponse(
+            {'code': 20000, 'msg': "", 'data': dic})
 
 
 class Userlog(APIView):

@@ -6,6 +6,8 @@ import json
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_jwt.utils import jwt_decode_handler
 from django.contrib.auth.hashers import make_password
+import logging
+logger = logging.getLogger('django')
 # Create your views here.
 
 
@@ -32,6 +34,7 @@ class Info(APIView):
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)[0]
         data['article_count'] = article_count
+        logger.info('userlog---someone access home page--ip:{}'.format(request.META['REMOTE_ADDR']))
         return JsonResponse(
             {'code': 20000, 'msg': "ok", 'data': data})
 
@@ -43,6 +46,7 @@ class User_api(APIView):
         dic = request.query_params
         meta = jwt_decode_handler(dic['token'])
         username = meta['username']
+        logger.info('userlog---user:{}--access home page--ip:{}'.format(username, request.META['REMOTE_ADDR']))
         user = User.objects.filter(username=username).first()
         hrad_img = user.head_img
         data = {'name': username, 'head_img': hrad_img}
@@ -64,6 +68,7 @@ class User_api(APIView):
             user = User(username=username,
                         password=password)
             user.save()
+            logger.info('userlog---new user:{}--regist--ip:{}'.format(user.username, request.META['REMOTE_ADDR']))
             return JsonResponse({'code': 20000, 'success': 1, 'msg': "注册成功"})
 
 
@@ -96,6 +101,7 @@ class Comments_api(APIView):
             artical_id=artical,
             user_id=user_id)
         comment.save()
+        logger.info('userlog---user:{}--publish a comments:{}--article:{}--ip:{}'.format(username, content, artical, request.META['REMOTE_ADDR']))
         return JsonResponse({'code': 20000, 'success': 1, 'msg': "评论发表成功"})
 
 
@@ -133,6 +139,7 @@ class Article_detail(APIView):
         ser = Article_detail_Serializer(instance=Article, many=True)
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)
+        logger.info('userlog---someone access detail page--{}-ip:{}'.format(Article[0].id, request.META['REMOTE_ADDR']))
         return JsonResponse(
             {'code': 20000, 'msg': "", 'data': data[0]})
 
@@ -164,6 +171,7 @@ class Category_api(APIView):
         ser = CategorySerializer(instance=all_Catogory, many=True)
         data = json.dumps(ser.data, ensure_ascii=False)
         data = eval(data)
+        logger.info('userlog---someone access category page--ip:{}'.format(request.META['REMOTE_ADDR']))
         return JsonResponse(
             {'code': 20000, 'msg': "", 'count': len(all_Catogory), 'data': data})
 

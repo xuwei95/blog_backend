@@ -13,7 +13,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.conf.urls import url
+from django.conf.urls import url, include
+from django.urls import path
 from myadmin import views as admin_views
 from app import views
 from rest_framework_jwt.views import obtain_jwt_token, verify_jwt_token, refresh_jwt_token
@@ -42,5 +43,8 @@ urlpatterns = [
     url(r'^api/(?P<version>[v1]+)/admin/website/$', admin_views.Web_site.as_view()),
     url(r'^api/(?P<version>[v1]+)/admin/email/$', admin_views.Email.as_view()),
     url(r'^api/(?P<version>[v1]+)/admin/sys_log/$', admin_views.Syslog.as_view()),
+    url(r'^api/(?P<version>[v1]+)/admin/sys_info/$', admin_views.Sys_info.as_view()),
+    url(r'^api/(?P<version>[v1]+)/admin/network_info/$', admin_views.Network_info.as_view()),
     url(r'^api/(?P<version>[v1]+)/admin/user_log/$', admin_views.Userlog.as_view()),
+    # path('', include('social_django.urls', namespace='social'))
 ]
